@@ -1,0 +1,69 @@
+name: "Publish"
+
+on:
+  push:
+    tags:
+      - v[0-9]+.[0-9]+.[0-9]+
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Token
+        id: get_token
+        uses: tibdex/github-app-token@v1
+        with:
+          app_id: ${{ secrets.BOT_APP_ID }}
+          private_key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
+      - name: Initialize Actions
+        uses: actions/checkout@v3
+
+      - run: |
+          # Get the version from the ref_name, and remove the v prefix
+          version=${{ github.ref_name }}
+          version=${version/#v}
+          sed -i "s/VERSION/$version/g" wpforms-sonar.php
+
+      - run: mkdir build
+
+      - name: Create artifact
+        uses: montudor/action-zip@v0.1.0
+        with:
+          args: zip -X -r build/wpforms-sonar.zip . -x *.git* node_modules/\* .* "*/\.*" CODE_OF_CONDUCT.md CONTRIBUTING.md ISSUE_TEMPLATE.md PULL_REQUEST_TEMPLATE.md *.dist composer.* dev-helpers** build**
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: wpforms-sonar
+          path: build/wpforms-sonar.zip
+
+      - name: Update CHANGELOG
+        id: changelog
+        uses: requarks/changelog-action@v1
+        continue-on-error: true
+        with:
+          token: ${{ github.token }}
+          tag: ${{ github.ref_name }}
+
+      - name: Create Release
+        uses: ncipollo/release-action@v1.12.0
+        with:
+          token: ${{ github.token }}
+          allowUpdates: true
+          draft: false
+          makeLatest: true
+          name: WPForms-Sonar - ${{ github.ref_name }}
+          body: ${{ steps.changelog.outputs.changes }}
+          artifacts: build/wpforms-sonar.zip
+          replacesArtifacts: true
+
+      - name: Commit CHANGELOG.md
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
+          commit_message: 'docs: update CHANGELOG.md for ${{ github.ref_name }} [skip ci]'
+          commit_user_name: nicko170 [bot]
+          commit_user_email: 172472+nicko170[bot]@users.noreply.github.com
+          file_pattern: CHANGELOG.md
+          token: ${{ steps.generate_token.outputs.token }}
