@@ -182,7 +182,7 @@ var WPFormsGeolocationGooglePlacesAPI = window.WPFormsGeolocationGooglePlacesAPI
                 // Nick P - 2023-05-25 - Add support for place_id hidden field
                 if ('text' === type) {
                     // find the hidden field with the custom_place_id_field class and add it to the additionalFields array
-                    const place_field = document.querySelector(".wpforms-form .custom_place_id_field > input[type=text]");
+                    const place_field = document.querySelector(".wpforms-form .custom_place_id_field > input[type=hidden]");
                     app.showDebugMessage("place_id: " + place_field)
                     if (place_field) {
                         additionalFields = {
