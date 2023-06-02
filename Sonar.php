@@ -14,7 +14,7 @@ class Sonar
     public function boot(): void
     {
         // hook the wpforms_frontend_js action to remove the geolocation script, and add our own with some updates.
-        add_action( 'wpforms_frontend_js', [ $this, 'enqueue_scripts' ], 99 );
+        add_action('wpforms_frontend_js', [$this, 'enqueue_scripts'], 99);
 
         // Hook the wpforms_ajax_submit_success_response filter to the submit_success_response method, which lets us perform
         // an SQ using the submitted form, and modify the output before it's returned back to the user.
@@ -61,8 +61,8 @@ class Sonar
         }
 
         // We can now run the SQ API call to get the address details, and store them in the form.
-        $address = $_REQUEST['wpforms']['fields'][$address_field_id];
         $place_id = $_REQUEST['wpforms']['fields'][$place_id_field_id];
+
 
         // If we do not have a place ID, we cannot do the API call.
         if (!$place_id) {
@@ -71,30 +71,32 @@ class Sonar
         }
 
         // Do the API call
-        $sq_response = $this->doSQ($place_id, $address);
-        if($sq_response === false) {
+        $place_id = json_decode(base64_decode($place_id), true);
+        $sq_response = $this->doSQ($place_id);
+        if ($sq_response === false) {
             $sq_response = "Error";
         }
 
         // Store the response in the form entry
-        if ($entry_id = $_POST['wpforms']['entry_id'] ?? false){
+        if ($entry_id = $_POST['wpforms']['entry_id'] ?? false) {
             $entry = wpforms()->get('entry')->get($entry_id);
 
-            if($fields = json_decode($entry->fields, true)) {
+            if ($fields = json_decode($entry->fields, true)) {
                 // Update the response field
                 $fields[$response_field_id]['value'] = $sq_response;
 
                 // Save the response back to the entry
-                wpforms()->get('entry')->update( $entry_id, array( 'fields' => json_encode($fields) ), '', '', array( 'cap' => false ) );
+                wpforms()->get('entry')->update($entry_id, array('fields' => json_encode($fields)), '', '', array('cap' => false));
             }
         }
 
         // Update the confirmation message to include the SQ response
-        $response['confirmation'] = str_replace('address', $address, $response['confirmation']);
-        $response['confirmation'] = $this->sqstyle($sq_response) .
-            str_replace('place_id', $place_id, $response['confirmation']);
+        $response['confirmation'] = str_replace('address', $place_id['autocomplete_search'], $response['confirmation']);
 
-        return  $response;
+        $response['confirmation'] = $this->sqstyle($sq_response) .
+            str_replace('place_id', $place_id['placeId'], $response['confirmation']);
+
+        return $response;
     }
 
     // sqstyle takes a response from the SQ API and returns a string of CSS to hide the other responses
@@ -121,7 +123,7 @@ class Sonar
 
 
     // doSQ takes a Google Place ID and returns the response from the SQ API
-    private function doSQ($place_id, $address)
+    private function doSQ($place_id)
     {
         // TODO: Make this a setting
         $url = "https://sq.vinenetworks.com.au/api/search";
@@ -130,10 +132,7 @@ class Sonar
             'headers' => [
                 'Content-Type' => 'application/json',
             ],
-            'body' => json_encode([
-                "placeId" => $place_id,
-                "autocomplete_search" => $address,
-            ]),
+            'body' => json_encode($place_id),
         ]);
 
         if (is_wp_error($response)) {

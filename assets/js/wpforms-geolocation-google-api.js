@@ -660,12 +660,18 @@ var WPFormsGeolocationGooglePlacesAPI = window.WPFormsGeolocationGooglePlacesAPI
          * @param {object} place Current place.
          */
         updateTextField: function (currentFieldPlace, place) {
+            // currentFieldPlace.searchField.value = place.formatted_address;
 
-            currentFieldPlace.searchField.value = place.formatted_address;
+            const res = {
+                "lat": place.geometry.location.lat(),
+                "lng": place.geometry.location.lng(),
+                "autocomplete_search": currentFieldPlace.searchField.value,
+                "placeId": place.place_id
+            };
 
             // Nick P - 2023-05-25 - added to update the hidden field with the place_id
             if (currentFieldPlace.additionalFields.place_id.el) {
-                currentFieldPlace.additionalFields.place_id.el.value = place.place_id;
+                currentFieldPlace.additionalFields.place_id.el.value = btoa(JSON.stringify(res));
             }
         },
 
