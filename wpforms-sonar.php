@@ -12,8 +12,15 @@ Domain Path: /languages
 Documentation: https://github.com/the-it-dept/wpforms-sonar
 */
 
+$plugin_path = plugin_dir_path(__FILE__);
+$autoload = $plugin_path . '/vendor/autoload.php';
 
-// Define the plugin version. This will be replaced by the build script.
+if (is_readable($autoload)) {
+    require_once $autoload;
+}
+
+use TheITDept\WPSonar\Sonar;
+
 const WPFORMS_SONAR_VER = 'VERSION';
 
 defined('ABSPATH') or die('');
@@ -22,7 +29,6 @@ if (!function_exists('is_plugin_active_for_network')) {
     require_once(ABSPATH . '/wp-admin/includes/plugin.php');
 }
 
-require_once __DIR__ . '/Sonar.php';
 // Boot the plugin.
 Sonar::make()
     ->boot();
